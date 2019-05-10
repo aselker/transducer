@@ -10,12 +10,13 @@ class softServo {
 
   public:
     softServo(); //Default constructor, for making lists
-    softServo(int enablePin, int aPin, int bPin, int potPin, float kp, float ki, float kd, bool motorReversed, bool potReversed);
+    softServo(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed);
 
-    void setup(int enablePin, int aPin, int bPin, int potPin, float kp, float ki, float kd, bool motorReversed, bool potReversed);
+    void setup(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed);
     //There are better ways to move these vars -- initializer lists and tuples -- but they require c++11
 
-    void update(); //Actually reads the pot / sets the motor power; call regularly for best results
+    void update(); // Runs PID loop / sets the motor power; call regularly for best results
+		void readPos(); // Reads the encoder to update position; call even more regularly
 
     void setPower(int power); //Set motor power, ignore pot
 
@@ -30,7 +31,7 @@ class softServo {
     static const int winLen = 300, maxPower = 96, posRange = 1023, deadSpot = 30;
 
     bool pinsInitialized;
-    int enablePin, aPin, bPin, potPin;
+    int enablePin, aPin, bPin, i1pin, i2pin;
 
     bool isPos; //True when we're trying to get to a position
     int power; //How hard we're pushing right now -- reset every update if isPos
@@ -38,7 +39,7 @@ class softServo {
 
     float kp, ki, kd; //Gains
 
-    int window[winLen], lastError, winPos, total, pos; //Some state
+    int window[winLen], lastError, winPos, total, pos, quad1, quad2; //Some state
 
     long unsigned int lastTime, loopTime; //The time the last loop finished, and how long it took
 

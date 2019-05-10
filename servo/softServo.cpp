@@ -6,27 +6,32 @@ softServo::softServo() {
 
 }
 
-softServo::softServo(int enablePin, int aPin, int bPin, int potPin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
+softServo::softServo(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
 
-  setup(enablePin, aPin, bPin, potPin, kp, ki, kd, motorReversed, potReversed);
+  setup(enablePin, aPin, bPin, i1pin, i2pin, kp, ki, kd, motorReversed, potReversed);
 
 }
 
-void softServo::setup(int enablePin, int aPin, int bPin, int potPin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
+void softServo::setup(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
 
   this->enablePin = enablePin;
   this->aPin = aPin;
   this->bPin = bPin;
-  this->potPin = potPin;
+	this->i1pin = i1pin;
+	this->i2pin = i2pin;
   this->motorReversed = motorReversed;
   this->potReversed = potReversed;
 
   pinMode(enablePin, OUTPUT);
   pinMode(aPin, OUTPUT);
   pinMode(bPin, OUTPUT);
-  pinMode(potPin, INPUT);
+  pinMode(i1pin, INPUT);
+  pinMode(i2pin, INPUT);
 
   this->pinsInitialized = true;
+
+	readPos(); // Update quad1 and quad2
+	this->pos = 0;
 
   setPids(kp, ki, kd); //Also clears I buffer
 
@@ -40,19 +45,19 @@ void softServo::setPids(float kp, float ki, float kd) { //Reset the pid tuning
   this->ki = ki;
   this->kd = kd;
 
-  for (int i = 0; i < winLen; i++) window[i] = 0; //re-init integral
-  winPos = 0;
-  total = 0;
+  for (int i = 0; i < winLen; i++) this->window[i] = 0; //re-init integral
+  this->winPos = 0;
+  this->total = 0;
 }
 
 void softServo::setPower(int power) {
 
   this->power = power;
-  isPos = false;
+  this->isPos = false;
 
 }
 
-void softServo::setPos(int pos) {
+void softServo::setPos(int goalPos) {
 
 
   if (!isPos) { //If switching from power to position, re-init integral
@@ -61,20 +66,34 @@ void softServo::setPos(int pos) {
     total = 0;
   }
 
-  this->goalPos = pos;
+  this->goalPos = goalPos;
   isPos = true;
 
 }
 
 int softServo::getPos() {
 
-  return pos;
+  return this->pos;
+
+}
+
+void softServo::readPos() {
+	bool s1 = digitalRead(i1pin) == HIGH;
+	bool s2 = digitalRead(i2pin) == HIGH;
+
+	if (this->quad1 != s1) {
+		(s1 == s2) ? this->pos++ : this->pos--;
+	}
+	if (this->quad2 != s2) {
+		(s1 != s2) ? this->pos++ : this->pos--;
+	}
+
+	this->quad1 = s1;
+	this->quad2 = s2;
 
 }
 
 void softServo::update() {
-
-  pos = potReversed ? posRange-analogRead(potPin) : analogRead(potPin);
 
   if (isPos) {
 

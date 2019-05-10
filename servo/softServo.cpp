@@ -6,13 +6,13 @@ softServo::softServo() {
 
 }
 
-softServo::softServo(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
+softServo::softServo(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed) {
 
-  setup(enablePin, aPin, bPin, i1pin, i2pin, kp, ki, kd, motorReversed, potReversed);
+  setup(enablePin, aPin, bPin, i1pin, i2pin, kp, ki, kd, motorReversed);
 
 }
 
-void softServo::setup(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed, bool potReversed) {
+void softServo::setup(int enablePin, int aPin, int bPin, int i1pin, int i2pin, float kp, float ki, float kd, bool motorReversed) {
 
   this->enablePin = enablePin;
   this->aPin = aPin;
@@ -20,7 +20,6 @@ void softServo::setup(int enablePin, int aPin, int bPin, int i1pin, int i2pin, f
 	this->i1pin = i1pin;
 	this->i2pin = i2pin;
   this->motorReversed = motorReversed;
-  this->potReversed = potReversed;
 
   pinMode(enablePin, OUTPUT);
   pinMode(aPin, OUTPUT);
@@ -82,6 +81,9 @@ void softServo::readPos() {
 	bool s2 = digitalRead(i2pin) == HIGH;
 
 	if (this->quad1 != s1) {
+		if (this->quad2 != s2) {
+			Serial.println("Can't keep up!");
+		}
 		(s1 == s2) ? this->pos++ : this->pos--;
 	}
 	if (this->quad2 != s2) {
@@ -109,17 +111,18 @@ void softServo::update() {
 
     int p = error * kp;
     int i = avg * ki;
-    int d = float(error - lastError) / float(loopTime) * kd;
+    int d = float(error - lastError) / (float(loopTime) * kd);
 
     //Serial.println("P: " + String(p) + " I: " + String(i) + "D: " + String(d) );
     //Serial.println("Last error: " + String(lastError) + " Current error: " + String(error) + " Last loop time: " + String(loopTime));
 
-    power = (p + i + d) * (255.0/float(posRange));
+    power = p + i + d;
 
     lastError = error;
 
-  } //End if isPos
-
+  } else {
+		power = this->power;
+	}
 
   if (motorReversed) power = -power;
 
@@ -129,12 +132,13 @@ void softServo::update() {
   if (power > maxPower) power = maxPower;
   if (power < -maxPower) power = -maxPower;
 
+	this->power = power;
   analogWrite(enablePin, abs(power));
   digitalWrite(aPin, (power>0) ? HIGH : LOW);
   digitalWrite(bPin, (power>0) ? LOW : HIGH);
 
-  loopTime = millis() - lastTime; //For decrementing turn timer
-  lastTime = millis(); //So we'll know how long the next loop takes
+  loopTime = micros() - lastTime; //For decrementing turn timer
+  lastTime = micros(); //So we'll know how long the next loop takes
 
 
 }

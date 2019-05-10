@@ -1,43 +1,52 @@
+#include "Servo.h"
+#include "softServo.h"
 
-int motor1 = PA1;
-int motor2 = PA2;
-int maxPower = 60;
+const int ampPin = PB0;
+const int ampMin = 56;
+const int ampMax = 117;
 
-int in1 = PA6;
-int in2 = PA7;
-bool s1, s2, l1, l2;
-long int count = 0;
+const int enablePin = PA3;
+const int motor1 = PA1;
+const int motor2 = PA2;
+
+const int in1 = PA6;
+const int in2 = PA7;
+
+const float kp = 15, ki= 0, kd = 0;
+
+softServo freqMotor;
+Servo ampMotor;
+int pos = 0;
+String input = "";
 
 void setup() {
-	pinMode(motor1, OUTPUT);
-	pinMode(motor2, OUTPUT);
-	digitalWrite(motor1, LOW);
-	digitalWrite(motor2, LOW);
 
-	pinMode(in1, INPUT);
-	pinMode(in2, INPUT);
-	s1 = l1 = digitalRead(in1);
-	s2 = l2 = digitalRead(in2);
+	freqMotor.setup(enablePin, motor1, motor2, in1, in2, kp, ki, kd, false);
+	ampMotor.attach(ampPin);
+	ampMotor.write((ampMin + ampMax)/2);
 
 	Serial.begin(115200);
+	Serial.setTimeout(100);
 }
 
 void loop() {
 
-	s1 = digitalRead(in1) == HIGH;
-	s2 = digitalRead(in2) == HIGH;
-
-	if (l1 != s1 && l2 != s2) Serial.println("Can't keep up!");
-
-	if (l1 != s1) {
-		(s1 == s2) ? count++ : count--;
+	while (Serial.available()) {
+		char in = (char)Serial.read();
+		if (in == '\n') {
+			int pos = (input.toFloat() * (ampMax - ampMin) + ampMin);
+			if (pos > ampMax) pos = ampMax;
+			if (pos < ampMin) pos = ampMin;
+			ampMotor.write(pos);
+			input = "";
+		} else {
+			input += in;
+		}
 	}
-	if (l2 != s2) {
-		(s1 != s2) ? count++ : count--;
-	}
 
-	Serial.println(count);
-		
-	l1 = s1;
-	l2 = s2;
+	freqMotor.setPos(3.6 * millis());
+
+	freqMotor.readPos();
+	freqMotor.update();
+
 }

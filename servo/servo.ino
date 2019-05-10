@@ -44,7 +44,7 @@ void loop() {
 		}
 	}
 
-	freqMotor.setPos(3.6 * millis());
+	freqMotor.setPos(4 * millis());
 
 	freqMotor.readPos();
 	freqMotor.update();
